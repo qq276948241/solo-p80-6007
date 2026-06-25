@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, watch, onMounted } from 'vue';
+import { reactive, watch, onMounted, nextTick } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useUserStore } from '../stores/user';
 import { useBooks } from '../composables/useBooks';
@@ -14,6 +14,8 @@ const filters = reactive({
   category: '全部',
   keyword: '',
 });
+
+let watchPaused = false;
 
 function buildBookQuery() {
   return {
@@ -39,13 +41,18 @@ function onKeywordKeyup(e) {
 
 watch(
   () => [filters.building, filters.category],
-  () => loadBooks()
+  () => {
+    if (!watchPaused) loadBooks();
+  }
 );
 
-function resetFilters() {
+async function resetFilters() {
+  watchPaused = true;
   filters.building = '全部';
   filters.category = '全部';
   filters.keyword = '';
+  await nextTick();
+  watchPaused = false;
   loadBooks();
 }
 

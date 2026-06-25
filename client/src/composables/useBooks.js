@@ -7,6 +7,8 @@ export function useBooks() {
   const categories = ref(['全部']);
   const loading = ref(false);
 
+  let fetchSeq = 0;
+
   async function fetchFilters() {
     try {
       const [bRes, cRes] = await Promise.all([
@@ -21,19 +23,26 @@ export function useBooks() {
   }
 
   async function fetchBooks(query = {}) {
+    const seq = ++fetchSeq;
+
+    const { building, category, keyword } = query;
+    const params = {};
+    if (building && building !== '全部') params.building = building;
+    if (category && category !== '全部') params.category = category;
+    if (keyword && keyword.trim()) params.keyword = keyword.trim();
+
     loading.value = true;
     try {
-      const { building, category, keyword } = query;
-      const params = {};
-      if (building && building !== '全部') params.building = building;
-      if (category && category !== '全部') params.category = category;
-      if (keyword && keyword.trim()) params.keyword = keyword.trim();
       const res = await bookApi.list(params);
+      if (seq !== fetchSeq) return;
       books.value = res.books;
     } catch (e) {
+      if (seq !== fetchSeq) return;
       console.error(e);
     } finally {
-      loading.value = false;
+      if (seq === fetchSeq) {
+        loading.value = false;
+      }
     }
   }
 
