@@ -1,15 +1,13 @@
 <script setup>
-import { reactive, ref, onMounted, computed, watch } from 'vue';
+import { reactive, watch, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
-import { filterApi, bookApi } from '../api';
 import { useUserStore } from '../stores/user';
+import { useBooks } from '../composables/useBooks';
 import BookCard from '../components/BookCard.vue';
 
 const userStore = useUserStore();
-const buildings = ref(['全部']);
-const categories = ref(['全部']);
-const books = ref([]);
-const loading = ref(false);
+
+const { books, buildings, categories, loading, fetchFilters, fetchBooks } = useBooks();
 
 const filters = reactive({
   building: '全部',
@@ -17,67 +15,48 @@ const filters = reactive({
   keyword: '',
 });
 
-const filteredBooks = computed(() => books.value);
-
-async function fetchFilters() {
-  try {
-    const [bRes, cRes] = await Promise.all([
-      filterApi.buildings(),
-      filterApi.categories(),
-    ]);
-    buildings.value = ['全部', ...bRes.buildings];
-    categories.value = ['全部', ...cRes.categories];
-  } catch (e) {
-    console.error(e);
-  }
+function buildBookQuery() {
+  return {
+    building: filters.building,
+    category: filters.category,
+    keyword: filters.keyword,
+  };
 }
 
-async function fetchBooks() {
-  loading.value = true;
-  try {
-    const params = {};
-    if (filters.building !== '全部') params.building = filters.building;
-    if (filters.category !== '全部') params.category = filters.category;
-    if (filters.keyword) params.keyword = filters.keyword;
-    const res = await bookApi.list(params);
-    books.value = res.books;
-  } catch (e) {
-    console.error(e);
-  } finally {
-    loading.value = false;
-  }
+function loadBooks() {
+  fetchBooks(buildBookQuery());
 }
 
 function onSearchSubmit() {
-  fetchBooks();
+  loadBooks();
 }
 
 function onKeywordKeyup(e) {
   if (e.key === 'Enter') {
-    fetchBooks();
+    loadBooks();
   }
 }
 
 watch(
   () => [filters.building, filters.category],
-  () => fetchBooks()
+  () => loadBooks()
 );
 
 function resetFilters() {
   filters.building = '全部';
   filters.category = '全部';
   filters.keyword = '';
-  fetchBooks();
+  loadBooks();
 }
 
 function clearKeyword() {
   filters.keyword = '';
-  fetchBooks();
+  loadBooks();
 }
 
-onMounted(() => {
-  fetchFilters();
-  fetchBooks();
+onMounted(async () => {
+  await fetchFilters();
+  loadBooks();
 });
 </script>
 
