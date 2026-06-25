@@ -48,10 +48,14 @@ async function fetchBooks() {
   }
 }
 
-let searchTimer = null;
-function onKeywordChange() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(fetchBooks, 300);
+function onSearchSubmit() {
+  fetchBooks();
+}
+
+function onKeywordKeyup(e) {
+  if (e.key === 'Enter') {
+    fetchBooks();
+  }
 }
 
 watch(
@@ -62,6 +66,11 @@ watch(
 function resetFilters() {
   filters.building = '全部';
   filters.category = '全部';
+  filters.keyword = '';
+  fetchBooks();
+}
+
+function clearKeyword() {
   filters.keyword = '';
   fetchBooks();
 }
@@ -114,19 +123,35 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="filter-card">
-      <div class="filter-row">
-        <div class="filter-search">
-          <span class="search-icon">🔍</span>
-          <input
-            v-model="filters.keyword"
-            type="text"
-            placeholder="搜索书名或作者..."
-            class="form-input"
-            @input="onKeywordChange"
-          />
-        </div>
+    <section class="search-bar">
+      <div class="search-bar-inner">
+        <span class="search-bar-icon">🔍</span>
+        <input
+          v-model="filters.keyword"
+          type="text"
+          placeholder="输入书名或作者，找找邻居们都在分享什么好书..."
+          class="search-bar-input"
+          @keyup="onKeywordKeyup"
+        />
+        <button
+          v-if="filters.keyword"
+          type="button"
+          class="search-bar-clear"
+          title="清除"
+          @click="clearKeyword"
+        >
+          ✕
+        </button>
+        <button type="button" class="search-bar-btn" @click="onSearchSubmit">
+          搜索
+        </button>
       </div>
+      <p class="search-bar-tip">
+        搜索会和下方楼栋、品类筛选一起生效，比如选「3号楼」+ 搜「三体」，只看 3 号楼里的《三体》
+      </p>
+    </section>
+
+    <section class="filter-card">
       <div class="filter-row">
         <div class="filter-group">
           <span class="filter-label">楼栋</span>
@@ -180,11 +205,28 @@ onMounted(() => {
       </div>
 
       <div v-else-if="books.length === 0" class="empty">
-        <div class="empty-icon">📭</div>
-        <p>暂未找到符合条件的书籍</p>
-        <button class="btn btn-outline btn-sm" style="margin-top: 16px" @click="resetFilters">
-          清除筛选条件
-        </button>
+        <div class="empty-icon">{{ filters.keyword ? '�' : '�' }}</div>
+        <p v-if="filters.keyword">
+          没找到相关书籍，换个关键词试试？
+        </p>
+        <p v-else>
+          暂未找到符合条件的书籍
+        </p>
+        <p class="empty-sub" v-if="filters.keyword && (filters.building !== '全部' || filters.category !== '全部')">
+          提示：当前还选了「{{ filters.building !== '全部' ? filters.building + ' / ' : '' }}{{ filters.category !== '全部' ? filters.category : '' }}」筛选，试试清空筛选再搜
+        </p>
+        <div class="empty-actions" style="margin-top: 16px; display: flex; gap: 10px; justify-content: center;">
+          <button v-if="filters.keyword" class="btn btn-outline btn-sm" @click="clearKeyword">
+            清除关键词
+          </button>
+          <button
+            v-if="filters.building !== '全部' || filters.category !== '全部' || filters.keyword"
+            class="btn btn-secondary btn-sm"
+            @click="resetFilters"
+          >
+            重置全部筛选
+          </button>
+        </div>
       </div>
 
       <div v-else class="books-grid">
@@ -352,6 +394,92 @@ onMounted(() => {
   50% { transform: translateY(-10px); }
 }
 
+.search-bar {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-cream);
+  border: 2px solid var(--border-warm);
+  border-radius: 14px;
+  padding: 6px 6px 6px 16px;
+  transition: all 0.2s ease;
+}
+
+.search-bar-inner:focus-within {
+  border-color: var(--accent-brown-light);
+  box-shadow: 0 0 0 4px rgba(139, 115, 85, 0.08);
+  background: #fffdf8;
+}
+
+.search-bar-icon {
+  font-size: 18px;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.search-bar-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 12px 6px;
+  color: var(--text-main);
+}
+
+.search-bar-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-bar-clear {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.search-bar-clear:hover {
+  background: var(--bg-warm);
+  color: var(--accent-brown-dark);
+}
+
+.search-bar-btn {
+  background: var(--accent-brown);
+  color: #fff;
+  padding: 10px 26px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.search-bar-btn:hover {
+  background: var(--accent-brown-dark);
+}
+
+.search-bar-tip {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-left: 4px;
+}
+
 .filter-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -371,24 +499,6 @@ onMounted(() => {
 
 .filter-row:last-child {
   align-items: center;
-}
-
-.filter-search {
-  flex: 1;
-  min-width: 260px;
-  position: relative;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.5;
-}
-
-.filter-search .form-input {
-  padding-left: 40px;
 }
 
 .filter-group {
@@ -478,6 +588,12 @@ onMounted(() => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
 }
 
 .books-grid {

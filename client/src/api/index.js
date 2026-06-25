@@ -12,7 +12,13 @@ export const filterApi = {
 };
 
 export const bookApi = {
-  list: (params) => api.get('/books', { params }),
+  list: ({ building, category, keyword } = {}) => {
+    const params = {};
+    if (building) params.building = building;
+    if (category) params.category = category;
+    if (keyword) params.keyword = keyword;
+    return api.get('/books', { params });
+  },
   detail: (id) => api.get(`/books/${id}`),
   create: (data) => api.post('/books', data),
 };
